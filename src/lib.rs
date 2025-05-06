@@ -20,6 +20,7 @@ pub mod reload;
 use bevy::{ecs::system::SystemParam, prelude::*, scene::scene_spawner_system};
 
 pub use hook::{run_hooks, SceneHook, SceneHooked};
+use reload::SceneBundle;
 
 #[cfg(doctest)]
 #[doc = include_str!("../Readme.md")]
@@ -42,7 +43,7 @@ pub struct HookedSceneBundle {
 #[allow(missing_docs /* field description is trivial */)]
 pub struct HookedDynamicSceneBundle {
     pub hook: SceneHook,
-    pub scene: DynamicSceneBundle,
+    pub scene: DynamicSceneRoot,
 }
 
 /// Convenience parameter to query if a scene marked with `M` has been loaded.

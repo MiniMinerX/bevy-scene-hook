@@ -5,7 +5,7 @@
 //! a color name.
 use std::f32::consts::TAU;
 
-use bevy::{color::palettes::css, prelude::*};
+use bevy::{color::palettes::css, pbr::VisibleClusterableObjects, prelude::*};
 use bevy_scene_hook::{reload, HookPlugin, HookedSceneBundle, SceneHook};
 
 // You can open this file in Blender and modify it, or just open it with a
@@ -46,16 +46,16 @@ fn show_gizmos(mut gizmos: Gizmos, to_show: Query<(&GlobalTransform, &ShowGizmo)
         let cylinder = Cylinder { radius: 0.1, half_height: 0.15 };
         match to_show.shape {
             Shape::Sphere => {
-                gizmos.sphere(pos, rot, 0.2, to_show.color);
+                gizmos.sphere(Isometry3d::new(pos, rot), 0.2, to_show.color);
             }
             Shape::Cube => {
                 gizmos.cuboid(cuboid, to_show.color);
             }
             Shape::Cone => {
-                gizmos.primitive_3d(&cone, pos, rot, to_show.color);
+                gizmos.primitive_3d(&cone, pos,  to_show.color);
             }
             Shape::Cylinder => {
-                gizmos.primitive_3d(&cylinder, pos, rot, to_show.color);
+                gizmos.primitive_3d(&cylinder, pos,  to_show.color);
             }
         }
     }
@@ -74,27 +74,29 @@ fn setup(mut cmds: Commands, mut gizmo_conf: ResMut<GizmoConfigStore>) {
     let config = gizmo_conf.config_mut::<DefaultGizmoConfigGroup>().0;
     config.depth_bias = 0.;
 
-    cmds.spawn(Camera3dBundle {
-        transform: Transform::from_xyz(5., 0., 0.).looking_at(Vec3::ZERO, Vec3::Y),
-        ..default()
-    });
+    cmds.spawn((
+        Camera3d::default(),
+        Visibility::default(),
+        Transform::from_xyz(5., 0., 0.).looking_at(Vec3::ZERO, Vec3::Y)
+    ));
 
     // example instructions
     let instr = "1: reload\n2: change reloadable scene\n3: delete reloadable scene (permanent)";
-    cmds.spawn(TextBundle::from_section(instr, default()));
+    cmds.spawn((
+        Text(instr.to_string()),
+        Transform::default(),
+        Visibility::default(),
+    ));
 }
 
 fn load_scenes(mut cmds: Commands, server: Res<AssetServer>) {
     let show_gizmo = |color, shape| ShowGizmo { color, shape };
     // ## HookedSceneBundle, standard usage ##
 
-    cmds.spawn(HookedSceneBundle {
-        scene: SceneBundle {
-            scene: server.load(SAMPLE),
-            transform: Transform::from_xyz(0., 0., -2.),
-            ..default()
-        },
-        hook: SceneHook::new(move |entity, cmds| {
+    cmds.spawn((
+        SceneRoot(server.load(SAMPLE)),
+        Transform::from_xyz(0., 0., -2.),
+        SceneHook::new(move |entity, cmds| {
             // You are not limited to matching the `Name`, you could also
             // parse it and add different thing based on the name. For example,
             // you could convert the name into a color instead of hardcoding the color.
@@ -107,17 +109,15 @@ fn load_scenes(mut cmds: Commands, server: Res<AssetServer>) {
                 _ => cmds,
             };
         }),
-    });
+    ));
 
     // ## reload::SceneBundle, advanced usage ##
 
-    cmds.spawn(reload::SceneBundle {
-        scene: SceneBundle {
-            scene: server.load(SAMPLE),
-            transform: Transform::from_xyz(0., 0., 2.),
-            ..default()
-        },
-        reload: reload::Hook::new(move |entity, cmds, _world, _root| {
+    cmds.spawn((
+        
+        SceneRoot(server.load(SAMPLE)),
+        Transform::from_xyz(0., 0., 2.),
+        reload::Hook::new(move |entity, cmds, _world, _root| {
             match entity.get().map(Name::as_str) {
                 Some("yellow") => cmds.insert(show_gizmo(css::YELLOW.into(), Shape::Cube)),
                 Some("red") => cmds.insert(show_gizmo(css::RED.into(), Shape::Cylinder)),
@@ -127,7 +127,7 @@ fn load_scenes(mut cmds: Commands, server: Res<AssetServer>) {
                 _ => cmds,
             };
         }),
-    });
+    ));
 }
 
 fn reload_scene(

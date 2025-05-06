@@ -1,11 +1,11 @@
 //! Defines reloading [`Hook`]s and supporting system.
 
-use bevy::ecs::system::EntityCommands;
-use bevy::ecs::world::Command;
+use bevy::ecs::schedule::IntoScheduleConfigs;
+use bevy::ecs::system::{Command, EntityCommands};
 use bevy::prelude::{
-    AssetServer, Bundle, Commands, Component, DespawnRecursiveExt, Entity, EntityRef, Handle,
-    IntoSystemConfigs, Plugin as BevyPlugin, Query, Reflect, Res, Scene,
-    SceneBundle as BevySceneBundle, SceneSpawner, World,
+    AssetServer, Bundle, Commands, Component, Entity, EntityRef, Handle,
+    Plugin as BevyPlugin, Query, Reflect, Res, Scene,
+    SceneSpawner, World,
 };
 use bevy::scene::{SceneInstance, SceneRoot};
 
@@ -14,7 +14,7 @@ use bevy::scene::{SceneInstance, SceneRoot};
 #[allow(missing_docs /* field description is trivial */)]
 pub struct SceneBundle {
     pub reload: Hook,
-    pub scene: BevySceneBundle,
+    pub scene: SceneRoot,
 }
 
 /// A newtype for a dynamic `Fn` that can be run as a hook.
@@ -132,7 +132,7 @@ pub fn run_reloadable_hooks(
                 };
                 let entities = scene_manager.iter_instance_entities(**instance);
                 for entity in entities.filter(|e| world.get_entity(*e).is_ok()) {
-                    cmds.entity(entity).despawn_recursive();
+                    cmds.entity(entity).despawn();
                 }
                 cmds.queue(UpdateHook { entity, new_state: State::Loading });
                 cmds.entity(entity)
@@ -142,9 +142,9 @@ pub fn run_reloadable_hooks(
             State::MustDelete => {
                 let entities = scene_manager.iter_instance_entities(**instance);
                 for entity in entities.filter(|e| world.get_entity(*e).is_ok()) {
-                    cmds.entity(entity).despawn_recursive();
+                    cmds.entity(entity).despawn();
                 }
-                cmds.entity(entity).despawn_recursive();
+                cmds.entity(entity).despawn();
             }
         }
     }
