@@ -5,7 +5,7 @@
 //! a color name.
 use std::f32::consts::TAU;
 
-use bevy::{color::palettes::css, pbr::VisibleClusterableObjects, prelude::*};
+use bevy::{color::palettes::css, prelude::*};
 use bevy_scene_hook::{reload, HookPlugin, HookedSceneBundle, SceneHook};
 
 // You can open this file in Blender and modify it, or just open it with a
